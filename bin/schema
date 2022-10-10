@@ -1,0 +1,297 @@
+#!/usr/bin/env node
+
+//
+// schema - db schema maintenance cli
+//
+// `schema --help` for more info
+//
+
+const { APPLICATION_ID, COUCHDB } = require('./lib/env.js');
+
+const debug = require('debug')('swat:schema');
+
+const fs = require('fs');
+const path = require('path');
+
+const { program } = require('commander');
+const { version } = require('../package.json');
+
+const nano = require('nano')(COUCHDB);
+
+const log = console.log;
+
+const findFiles = require('../lib/findFiles');
+const forEach = require('../lib/async-forEach');
+
+const sourcePath = path.normalize(`${__dirname}/../models`);
+
+const loadModel = modelPath => {
+  const model = require(modelPath);
+  // store model's actual couchdb name
+  model.dbName = `${APPLICATION_ID}-${model.name}`;
+  return model;
+};
+
+const loadModels = () => {
+  const models = [];
+  findFiles(sourcePath, /\-model\.js$/, filePath => {
+    const model = loadModel(filePath);
+    models.push(model);
+  });
+  return models;
+};
+
+async function createModelViews(model) {
+  const db = nano.use(model.dbName);
+  // create the db design docs and views
+  for (let ddocName in model.views) {
+    const ddoc = {
+      _id: `_design/${ddocName}`,
+      views: Object.keys(model.views[ddocName]).reduce(
+        (views, viewName) => {
+          return {
+            ...views,
+            [viewName]: {
+              reduce: '_count',
+              map: model.views[ddocName][viewName],
+            },
+          };
+        },
+        {} // "views" starts out empty
+      ),
+      language: 'javascript',
+      partitioned: model.partitioned,
+      version: model.version,
+    };
+
+    await db.insert(ddoc);
+
+    const viewCount = Object.keys(model.views[ddocName]).length;
+
+    log(`${model.name} ddoc "${ddocName}" (${viewCount} views) created`);
+  }
+}
+
+async function findUnexpectedDDocs(models) {
+  // check every known db for views that don't exist in the model
+  unexpectedDDocs = [];
+  await forEach(models, async model => {
+    const db = nano.use(model.dbName);
+    try {
+      // get the ddocs that currently exist for this model
+      const modelDDocs = await db.get('_design_docs');
+      // these are the ddocs we expect to exist in the database
+      const expectedDDocs = [
+        ...Object.keys(model.views).map(viewName => `_design/${viewName}`),
+        `_design/${APPLICATION_ID}-read-only`,
+      ];
+      // for each ddoc that actually exists...
+      modelDDocs.rows.forEach(row => {
+        const existingDDoc = row.id;
+        // ..is it in our list of expected docs?
+        if (!expectedDDocs.includes(existingDDoc)) {
+          // nope.. it's unexpected
+          unexpectedDDocs.push(`${model.dbName}/${existingDDoc}`);
+          console.error(` !! ${model.dbName}/${ddoc}`);
+        }
+      });
+    } catch (error) {
+      if (error.statusCode !== 404) throw error; // unexpected error
+    }
+  });
+  if (unexpectedDDocs.length) {
+    console.error(`ERROR: ${unexpectedDDocs.length} unexpected DDoc(s)`);
+  }
+  return !!unexpectedDDocs.length;
+}
+
+async function buildModelDB(model) {
+  // set the security context for the db
+  await nano.request({
+    db: model.dbName,
+    method: 'put',
+    path: '/_security',
+    body: model._security,
+  });
+
+  const db = nano.use(model.dbName);
+
+  // insert required documents
+  await forEach(model.requiredDocs || [], async doc => {
+    await db.insert(doc);
+  });
+
+  if (model.readOnly) {
+    await db.insert({
+      _id: `_design/${APPLICATION_ID}-read-only`,
+      language: 'javascript',
+      validate_doc_update: (newDoc, oldDoc, userCtx, secObj) => {
+        const acceptableRoles = secObj.admins.roles;
+        const userRoles = userCtx.roles;
+        // ensure that the current user has an acceptable admin role
+        if (!acceptableRoles.find(role => userRoles.includes(role))) {
+          throw {
+            forbidden: 'read-only',
+          };
+        }
+      },
+    });
+    console.log(`${model.name} made read-only (for non-admins)`);
+  }
+
+  await createModelViews(model);
+}
+
+program
+  .command('create')
+  .description(`create the db schema, views and initial docs`)
+  .option('--force', 'ignore errors and create the schema')
+  .option('--clean', 'destroy dangling db(s)')
+  .action(async ({ force, clean }) => {
+    try {
+      const models = loadModels();
+
+      if (!force) {
+        const needsForce = await findUnexpectedDDocs(models);
+        if (needsForce) {
+          console.log("Note: use '--force' to create the schema anyway");
+          return; // unable to continue
+        }
+      }
+
+      await forEach(models, async model => {
+        // destroy any existing "known" db's
+        await nano.db
+          .destroy(model.dbName)
+          .then(() => {
+            log(`${model.name} destroyed`);
+          })
+          .catch(error => {
+            if (error.statusCode !== 404) throw error; // unexpected
+          });
+
+        // create the db
+        await nano.db
+          .create(model.dbName, {
+            partitioned: model.partitioned,
+          })
+          .then(() => {
+            log(`${model.name} created`);
+          });
+
+        return buildModelDB(model);
+      });
+
+      // grab a list of "our" databases
+      const allDBs = await nano.request({
+        path: `_all_dbs?startkey="${APPLICATION_ID}-"`,
+      });
+
+      // any db that we don't have a model for is "dangling"
+      const danglingDBs = allDBs.filter(
+        db => !models.find(model => model.dbName === db)
+      );
+
+      if (danglingDBs.length) {
+        if (clean) {
+          await forEach(danglingDBs, async danglingDbName => {
+            await nano.db.destroy(danglingDbName);
+            console.log(`dangling db "${danglingDbName}" destroyed`);
+          });
+        } else {
+          console.warn(
+            `WARNING: Dangling db(s) detected [${danglingDBs.join(',')}] ` +
+              'use --clean to destroy them'
+          );
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  });
+
+program
+  .command('reindex')
+  .description(`reindex the db`)
+  .option('--force', 'ignore errors and reindex the schema')
+  .action(async ({ force }) => {
+    const models = loadModels();
+
+    if (!force) {
+      const needsForce = await findUnexpectedDDocs(models);
+      if (needsForce) {
+        console.log("Note: use '--force' to create the schema anyway");
+        return; // unable to continue
+      }
+    }
+
+    await forEach(models, async model => {
+      // reset the security context for the db
+      // await nano.request({
+      //   db: model.dbName,
+      //   method: 'put',
+      //   path: '/_security',
+      //   body: model._security,
+      // });
+
+      const db = nano.use(model.dbName);
+
+      // next, drop all "our" ddocs
+      const ddocs = await db.get(
+        `_design_docs?startkey="_design/${APPLICATION_ID}-"`
+      );
+      await forEach(ddocs.rows, async ddocInfo => {
+        const res = await db.destroy(ddocInfo.id, ddocInfo.value.rev);
+        log(`"${model.name}/${ddocInfo.id}" destroyed`);
+      });
+
+      // drop all of the view's required docs
+      await forEach(model.requiredDocs || [], async requiredDoc => {
+        const docId = requiredDoc._id;
+        try {
+          const doc = await db.get(docId);
+          await db.destroy(docId, doc._rev);
+        } catch (error) {
+          if (error.statusCode !== 404) throw error; // unexpected
+        }
+      });
+
+      buildModelDB(model);
+    });
+  });
+
+program
+  .command('seed')
+  .description(`load the db with sample data`)
+  .action(async () => {
+    const models = loadModels();
+    await forEach(models, async model => {
+      const db = nano.use(model.dbName);
+
+      await forEach(model.sampleDocs || [], async sampleDoc => {
+        try {
+          const doc = await db.get(sampleDoc._id);
+          await db.destroy(doc._id, doc._rev);
+        } catch (error) {
+          if (error.statusCode !== 404) throw error; // unexpected
+        }
+        await db.insert(sampleDoc);
+      });
+
+      await forEach(Object.keys(model.tags || {}), async tag => {
+        db.insert({
+          _id: `${model.name}-tag-${tag}`,
+          type: 'tag',
+          tag,
+          label: model.tags[tag],
+        });
+      });
+
+      log(
+        `${model.dbName}: ${model.sampleDocs.length} samples, ` +
+          `${Object.keys(model.tags || {}).length} tags`
+      );
+    });
+  });
+
+program.version(version).parse(process.argv);
