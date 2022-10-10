@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+const { version } = require('../package.json');
+const fs = require("fs");
+const path = require("path");
+const chalk = require("chalk");
+const { program } = require("commander");
+const yup = require("yup");
+
+const DOT_ENV_PATH = path.normalize(path.join(__dirname, "..", ".env"));
+
+if (!fs.existsSync(DOT_ENV_PATH)) fatalError(`${DOT_ENV_PATH} not found.`);
+
+const SWAT_ENV = require("dotenv").config({ path: DOT_ENV_PATH });
+
+const envSchema = yup.object().shape({
+  APPLICATION_ID: yup
+    .string()
+    .required()
+    .matches(/[a-z][a-z0-9_]*/),
+
+  CLIENT_BRAND: yup.string().required(),
+  CLIENT_NAME: yup.string().required(),
+
+  ADMIN_USER: yup.string().required(),
+  ADMIN_PASSWORD: yup.string().required(),
+
+  COUCHDB: yup.string().required(),
+
+  AUTH_SECRET: yup.string().required(),
+
+  SESSION_DURATION: yup.string().required(),
+  TOKEN_DURATION: yup.string().required(),
+  CLIENT_REDIRECT: yup.string().required(),
+
+  NEW_USER_ROLES: yup.string().required(),
+
+  DEBUG: yup.string(),
+  DEBUG_AUTH: yup.string().required(),
+  DEBUG_API: yup.string().required(),
+  DEBUG_CHAT: yup.string().required(),
+  DEBUG_CLIENT: yup.string(),
+  NODE_ENV: yup.string().oneOf(["development", "production"]),
+});
+
+program
+  //.command('*')
+  .description(`Validate the application's .env file`)
+  .action(async () => {
+    envSchema
+      .validate(SWAT_ENV.parsed, { abortEarly: false, stripUnknown: true })
+      .then((valid) => {
+        const unexpectedVars = Object.keys(SWAT_ENV.parsed).reduce(
+          (prev, key) => (valid[key] ? prev : [...prev, key]),
+          []
+        );
+
+        if (unexpectedVars.length) {
+          console.log("\nApplication specific variable(s):");
+          unexpectedVars.forEach((u) => console.log(`  ${u}`));
+        }
+
+        const { APPLICATION_ID, CLIENT_BRAND, CLIENT_NAME } = SWAT_ENV.parsed;
+
+        console.log(
+          chalk.green(
+            `\nEnvironment for ` +
+              chalk.white(`${CLIENT_BRAND} ${CLIENT_NAME}`) +
+              ` (${chalk.yellow(APPLICATION_ID)}) looks good!`
+          )
+        );
+
+        console.log();
+      })
+      .catch((err) => {
+        console.error(JSON.stringify(err.errors));
+      });
+  });
+
+program.version(`validate-env: ${version}`).parse(process.argv);
+
+function fatalError(msg) {
+  console.error(chalk.red("ERROR: ") + msg);
+  process.exit(1);
+}

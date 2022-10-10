@@ -15,5 +15,11 @@
   "bugs": {
     "url": "https://github.com/ericlowry/swat/issues"
   },
-  "homepage": "https://github.com/ericlowry/swat#readme"
+  "homepage": "https://github.com/ericlowry/swat#readme",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^9.4.1",
+    "dotenv": "^16.0.3",
+    "yup": "^0.32.11"
+  }
 }
