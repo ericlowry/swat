@@ -1,0 +1,7 @@
+#
+# .prettier.yaml - prettier settings for yaml files
+#
+trailingComma: "none"
+tabWidth: 2
+semi: false
+singleQuote: false
