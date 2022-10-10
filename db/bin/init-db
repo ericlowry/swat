@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+//
+// initialize a new couchdb instance (if needed)
+// and set up the jwt authentication stuff
+//
+const assert = require('assert');
+const { APPLICATION_ID, COUCHDB, AUTH_SECRET, CLIENT_ORIGINS } = process.env;
+assert(APPLICATION_ID, 'missing APPLICATION_ID environment variable');
+assert(COUCHDB, 'missing COUCHDB environment variable');
+assert(AUTH_SECRET, 'missing AUTH_SECRET environment variable');
+
+const nano = require('nano')(COUCHDB);
+
+nano
+  .info()
+  .then(async info => {
+    console.log(`couchdb:`);
+    console.log(`  :  version ${info.version}`);
+
+    let res;
+
+    await nano
+      .request({
+        method: 'put',
+        path: '_global_changes',
+      })
+      .then(() => {
+        console.log('  : _global_changes created');
+      })
+      .catch(error => {
+        if (error.statusCode !== 412) throw error; // i.e. an unexpected error
+        console.log('  : _global_changes exists');
+      });
+
+    const base64 = s => {
+      const v = new Buffer.from(s).toString('base64');
+      return v + '==='.substr(0, v.length % 4); // pad with '='
+    };
+
+    await nano.request({
+      method: 'put',
+      path: `_node/_local/_config/jwt_keys/hmac:${APPLICATION_ID}`,
+      body: base64(AUTH_SECRET),
+    });
+    console.log(` : jwt key hmac:${APPLICATION_ID} added`);
+  })
+  .catch(error => {
+    console.error(error);
+  });

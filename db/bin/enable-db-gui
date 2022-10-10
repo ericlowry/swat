@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+const assert = require('assert');
+const { COUCHDB } = process.env;
+assert(COUCHDB, 'missing COUCHDB environment variable');
+const nano = require('nano')(COUCHDB);
+
+nano
+  .info()
+  .then(async () => {
+    await nano.request({
+      method: 'put',
+      path: '_node/_local/_config/chttpd/require_valid_user_except_for_up',
+      body: 'false',
+    });
+    console.log(`couchdb gui /_utils and anonymous access is enabled`);
+  })
+  .catch(error => {
+    console.error(error);
+  });

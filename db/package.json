@@ -1,0 +1,19 @@
+{
+  "name": "db",
+  "version": "1.0.0",
+  "description": "db utilities",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "commander": "^7.2.0",
+    "jsonwebtoken": "^8.5.1",
+    "nano": "^9.0.3",
+    "node-fetch": "^2.6.1",
+    "short-uuid": "^4.1.0"
+  }
+}

@@ -1,0 +1,9 @@
+
+# ignore everything in this directory...
+*
+
+# ...except these files
+!.gitignore
+!README-certs.md
+!certs.toml
+

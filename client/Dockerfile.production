@@ -1,0 +1,35 @@
+FROM node:16 AS build-client-html
+
+RUN npm config --global set fund false
+RUN npm config --global set update-notifier false
+RUN npm install --global nodemon
+
+WORKDIR /opt/client
+
+ENV SASS_PATH=node_modules
+
+COPY ./client/package.json .
+COPY ./client/package-lock.json .
+RUN npm install
+
+COPY ./client/public ./public
+COPY ./client/src ./src
+
+ARG REACT_APP_DEBUG
+ARG REACT_APP_APPLICATION_ID
+ARG REACT_APP_CLIENT_BRAND
+ARG REACT_APP_CLIENT_NAME
+ARG REACT_APP_SESSION_DURATION
+ARG REACT_APP_TOKEN_DURATION
+
+RUN npm run build
+
+FROM nginx
+
+COPY ./client/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build-client-html /opt/client/build /usr/share/nginx/html
+
+# test the configuration file
+RUN nginx -t
+
+ENV NGINX_ENTRYPOINT_QUIET_LOGS=1

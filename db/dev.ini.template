@@ -1,0 +1,27 @@
+[couchdb]
+single_node = true
+
+[cluster]
+n=1
+
+[chttpd]
+authentication_handlers = {chttpd_auth, jwt_authentication_handler}, {chttpd_auth, cookie_authentication_handler}, {chttpd_auth, default_authentication_handler}
+
+[couch_httpd_auth]
+; web session sessions time out after 8 hours
+timeout = 28800
+
+[jwt_auth]
+; every jwt token must have an expiration
+required_claims = exp
+
+[jwt_keys]
+; create an hmac specific to our application
+hmac:${APPLICATION_ID} = ${AUTH_SECRET_B64}
+
+[uuids]
+algorithm = random
+
+[log]
+; levels: debug, info, notice, warn, err, crit, alert, emerg, none
+level = warn

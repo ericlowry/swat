@@ -1,0 +1,17 @@
+#
+# certs/certs.toml - traefik file provider (watched by traefik for changes)
+#
+
+# this is the belt...
+[tls]
+[tls.stores]
+[tls.stores.default]
+[tls.stores.default.defaultCertificate]
+certFile = "/opt/certs/cert.crt"
+keyFile = "/opt/certs/key.key"
+
+# ...and the suspenders
+[[tls.certificates]]
+certFile = "/opt/certs/cert.crt"
+keyFile = "/opt/certs/key.key"
+stores = ["default"]

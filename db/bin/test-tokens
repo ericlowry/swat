@@ -1,0 +1,88 @@
+#!/usr/bin/env node
+//
+// test-token - checks that tokens are configured correctly in the DB,
+//              and gives you some working test user tokens to play with.
+//
+const assert = require('assert');
+const jwt = require('jsonwebtoken');
+const makeToken = require('../lib/makeToken');
+const { APPLICATION_ID, COUCHDB } = process.env;
+assert(APPLICATION_ID, 'missing APPLICATION_ID environment variable');
+assert(COUCHDB, 'missing COUCHDB environment variable');
+const { protocol, host } = new URL(COUCHDB);
+
+const nano = require('nano')(COUCHDB);
+
+nano
+  .request('_up')
+  .then(async () => {
+    const _config = await nano.request('_node/_local/_config');
+    assert(_config.jwt_keys, 'db missing [jwt_keys]');
+    assert(
+      _config.jwt_keys[`hmac:${APPLICATION_ID}`],
+      `db missing [jwt_keys]hmac:${APPLICATION_ID}`
+    );
+
+    const secret = Buffer.from(
+      _config.jwt_keys[`hmac:${APPLICATION_ID}`],
+      'base64'
+    ).toString('utf8');
+
+    assert(
+      secret === process.env.AUTH_SECRET,
+      `[jwt_keys]hmac:${APPLICATION_ID}] !== AUTH_SECRET \n` +
+        `AUTH_SECRET: "${process.env.AUTH_SECRET}"\n` +
+        `hmac-secret: "${secret}"\n`
+    );
+
+    const userToken = makeToken(
+      {
+        _id: 'test-user',
+        roles: ['user', 'power', 'focal'], // every thing but 'admin'
+      },
+      '8h'
+    );
+
+    const userService = require('nano')({
+      url: `${protocol}//${host}`,
+      requestDefaults: {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${userToken}` },
+      },
+    });
+
+    await userService.request('_session').then(({ ok, userCtx, info }) => {
+      assert(ok);
+      assert(userCtx && userCtx.name === 'test-user');
+      assert(Array.isArray(userCtx.roles) && userCtx.roles.length === 3);
+      assert(info && info.authenticated === 'jwt');
+      console.log('test-user token:');
+      console.log(userToken);
+    });
+
+    const adminToken = makeToken(
+      {
+        _id: 'test-admin',
+        roles: ['user', 'power', 'focal', 'admin'],
+      },
+      '8h'
+    );
+
+    const adminService = require('nano')({
+      url: `${protocol}//${host}`,
+      requestDefaults: {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${adminToken}` },
+      },
+    });
+
+    await adminService.request('_session').then(({ ok, userCtx, info }) => {
+      assert(ok);
+      assert(userCtx && userCtx.name === 'test-admin');
+      assert(Array.isArray(userCtx.roles) && userCtx.roles.length === 4);
+      assert(info && info.authenticated === 'jwt');
+      console.log('test-admin token:');
+      console.log(adminToken);
+    });
+  })
+  .catch(console.error);

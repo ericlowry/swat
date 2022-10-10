@@ -1,0 +1,243 @@
+#
+# docker-compose.yml
+#
+version: '3.7'
+
+volumes:
+  db-data:
+  cache-data:
+
+services:
+  #
+  # traefik - application ingress
+  #
+  traefik:
+    image: 'traefik:v2.8.8' # latest as of 2022-10-01
+    ports:
+      # http "web" traffic
+      - '80:80'
+      # https "web-secure" traffic
+      - '443:443'
+      # the "edge-proxy"s web ui (enabled by --api.insecure=true)
+      - '8080:8080'
+    volumes:
+      # allow traefik to listen docker events
+      - '/var/run/docker.sock:/var/run/docker.sock:ro'
+      # mount our certs where the "provider.file.certs" can find them
+      - './certs:/opt/certs'
+    command:
+      # available log levels are DEBUG, INFO, WARN, ERROR, FATAL, PANIC
+      - '--log.level=ERROR'
+      # provide traefik
+      - '--api.insecure=true'
+      # we are using docker ;-)
+      - '--providers.docker'
+      # prevent a bunch of extra routers in the gui
+      - '--providers.docker.exposedbydefault=false'
+      # make our development certs available
+      - '--providers.file.filename=/opt/certs/certs.toml'
+      # incoming http "web" traffic
+      - '--entrypoints.web.address=:80'
+      # incoming https "web-secure" traffic
+      - '--entrypoints.web-secure.address=:443'
+
+  #
+  # db - CouchDB Database Service
+  #
+  db:
+    build:
+      context: '.'
+      dockerfile: './db/Dockerfile'
+      args:
+        - 'APPLICATION_ID'
+        - 'AUTH_SECRET'
+    depends_on:
+      - 'traefik'
+    expose:
+      - '5984'
+    ports:
+      - '5984:5984'
+    volumes:
+      - 'db-data:/opt/couchdb/data'
+      - './lib:/opt/lib'
+      - './db/lib:/opt/db/lib'
+      - './db/bin:/opt/db/bin'
+      - './db/models:/opt/db/models'
+    environment:
+      - 'APPLICATION_ID'
+      - 'AUTH_SECRET'
+      - 'COUCHDB_USER=${ADMIN_USER}'
+      - 'COUCHDB_PASSWORD=${ADMIN_PASSWORD}'
+      - 'COUCHDB=http://${ADMIN_USER}:${ADMIN_PASSWORD}@db:5984'
+    labels:
+      - 'traefik.enable=true'
+      # service db-service
+      - 'traefik.http.services.db-service.loadbalancer.server.port=5984'
+      # middleware db-stripper - strips '^/db' from requests
+      - 'traefik.http.middlewares.db-stripper.stripprefix.prefixes=/db'
+      # router db-https
+      - 'traefik.http.routers.db-https.service=db-service'
+      - 'traefik.http.routers.db-https.entrypoints=web-secure'
+      - 'traefik.http.routers.db-https.rule=PathPrefix(`/db/`)'
+      - 'traefik.http.routers.db-https.tls=true'
+      - 'traefik.http.routers.db-https.middlewares=db-stripper'
+      # router db-http
+      - 'traefik.http.routers.db-http.service=db-service'
+      - 'traefik.http.routers.db-http.entrypoints=web'
+      - 'traefik.http.routers.db-http.rule=PathPrefix(`/db/`)'
+      - 'traefik.http.routers.db-http.middlewares=db-stripper'
+
+  #
+  # cache - Redis cache for session info
+  #
+  cache:
+    image: 'redis:7.0.5' # latest as of 2022-10-01
+    ports:
+      - '6379:6379'
+    volumes:
+      - 'cache-data:/data'
+    command: 'redis-server --loglevel warning  --tcp-backlog 128 --appendonly yes'
+
+  #
+  # auth - Authorization and Authentication Service
+  #
+  auth:
+    build:
+      context: '.'
+      dockerfile: './auth/Dockerfile'
+    expose:
+      - '80'
+    depends_on:
+      - 'traefik'
+      - 'db'
+      - 'cache'
+    volumes:
+      - './auth/bin:/opt/auth/bin'
+      - './auth/public:/opt/auth/public'
+      - './auth/src:/opt/auth/src'
+    environment:
+      - 'APPLICATION_ID'
+      - 'AUTH_SECRET'
+      - 'NODE_ENV'
+      - 'PORT=80'
+      - 'COUCHDB=http://${ADMIN_USER}:${ADMIN_PASSWORD}@db:5984'
+      - 'REDIS=redis://cache'
+      - 'SESSION_DURATION'
+      - 'TOKEN_DURATION'
+      - 'CLIENT_REDIRECT'
+      - 'DEBUG=${DEBUG_AUTH}'
+    tty: true
+    command: 'sh -c "nodemon --quiet --watch ./src ./bin/auth-service"'
+    labels:
+      - 'traefik.enable=true'
+      # service auth-service
+      - 'traefik.http.services.auth-service.loadbalancer.server.port=80'
+      # middleware auth-stripper - strips '^/auth' from requests
+      - 'traefik.http.middlewares.auth-stripper.stripprefix.prefixes=/auth'
+      # router auth-https
+      - 'traefik.http.routers.auth-https.service=auth-service'
+      - 'traefik.http.routers.auth-https.entrypoints=web-secure'
+      - 'traefik.http.routers.auth-https.rule=PathPrefix(`/auth/`)'
+      - 'traefik.http.routers.auth-https.tls=true'
+      - 'traefik.http.routers.auth-https.middlewares=auth-stripper'
+      # router auth-http
+      - 'traefik.http.routers.auth-http.service=auth-service'
+      - 'traefik.http.routers.auth-http.entrypoints=web'
+      - 'traefik.http.routers.auth-http.rule=PathPrefix(`/auth/`)'
+      - 'traefik.http.routers.auth-http.middlewares=auth-stripper'
+
+  #
+  # api - API Service
+  #
+  api:
+    build:
+      context: '.'
+      dockerfile: './api/Dockerfile'
+    depends_on:
+      - 'traefik'
+      - 'db'
+      - 'cache'
+    volumes:
+      - './api/bin:/opt/api/bin'
+      - './api/public:/opt/api/public'
+      - './api/src:/opt/api/src'
+    environment:
+      - 'APPLICATION_ID'
+      - 'AUTH_SECRET'
+      - 'NODE_ENV'
+      - 'PORT=80'
+      - 'COUCHDB=http://${ADMIN_USER}:${ADMIN_PASSWORD}@db:5984'
+      - 'REDIS=redis://cache'
+      - 'DEBUG=${DEBUG_API}'
+    tty: true
+    command: 'sh -c "nodemon --quiet --watch ./src ./bin/api-service"'
+    labels:
+      - 'traefik.enable=true'
+      # service api-service
+      - 'traefik.http.services.api-service.loadbalancer.server.port=80'
+      # middleware api-stripper - strips '^/api' from requests
+      - 'traefik.http.middlewares.api-stripper.stripprefix.prefixes=/api'
+      # router api-https
+      - 'traefik.http.routers.api-https.service=api-service'
+      - 'traefik.http.routers.api-https.entrypoints=web-secure'
+      - 'traefik.http.routers.api-https.rule=PathPrefix(`/api/`)'
+      - 'traefik.http.routers.api-https.tls=true'
+      - 'traefik.http.routers.api-https.middlewares=api-stripper'
+      # router api-http
+      - 'traefik.http.routers.api-http.service=api-service'
+      - 'traefik.http.routers.api-http.entrypoints=web'
+      - 'traefik.http.routers.api-http.rule=PathPrefix(`/api/`)'
+      - 'traefik.http.routers.api-http.middlewares=api-stripper'
+
+  #
+  # client - Serve the client site
+  #
+  client:
+    build:
+      context: '.'
+      dockerfile: './client/Dockerfile.${NODE_ENV}'
+      args:
+        # we need these here for NODE_ENV='production' (see below)'
+        - 'REACT_APP_DEBUG=${DEBUG_CLIENT}'
+        - 'REACT_APP_APPLICATION_ID=${APPLICATION_ID}'
+        - 'REACT_APP_CLIENT_BRAND=${CLIENT_BRAND}'
+        - 'REACT_APP_CLIENT_NAME=${CLIENT_NAME}'
+    expose:
+      - '80'
+    depends_on:
+      - 'traefik'
+      - 'db'
+      - 'auth'
+      - 'api'
+    volumes:
+      - './client/src:/opt/client/src'
+      - './client/package.json:/opt/client/package.json'
+      - './client/package-lock.json:/opt/client/package-lock.json'
+    environment:
+      - 'PORT=80'
+      # we need these here for NODE_ENV='development'
+      - 'REACT_APP_DEBUG=${DEBUG_CLIENT}'
+      - 'REACT_APP_APPLICATION_ID=${APPLICATION_ID}'
+      - 'REACT_APP_CLIENT_BRAND=${CLIENT_BRAND}'
+      - 'REACT_APP_CLIENT_NAME=${CLIENT_NAME}'
+      - 'WDS_SOCKET_PORT=443'
+    tty: false
+    #command: 'sh -c "npm start"'
+    labels:
+      - 'traefik.enable=true'
+      # service client-service
+      - 'traefik.http.services.client-service.loadbalancer.server.port=80'
+      # Note: for development, this is terrible; but for prod? - awesome!
+      # middlware https-redirect
+      #- 'traefik.http.middlewares.https-redirect.redirectscheme.scheme=https'
+      #- 'traefik.http.middlewares.https-redirect.redirectscheme.permanent=true'
+      # router client-https
+      - 'traefik.http.routers.client-https.service=client-service'
+      - 'traefik.http.routers.client-https.entrypoints=web-secure'
+      - 'traefik.http.routers.client-https.rule=PathPrefix(`/`)'
+      - 'traefik.http.routers.client-https.tls=true'
+      # router client-http
+      - 'traefik.http.routers.client-http.service=client-service'
+      - 'traefik.http.routers.client-http.entrypoints=web'
+      - 'traefik.http.routers.client-http.rule=PathPrefix(`/`)'
+      #- 'traefik.http.routers.client-http.middlewares=https-redirect'
