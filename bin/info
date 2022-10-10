@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+const { name, description, version } = require('../package.json');
+console.log(`application: ${name}`);
+console.log(`description: ${description}`);
+console.log(`app-version: ${version}`);

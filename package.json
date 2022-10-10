@@ -1,0 +1,19 @@
+{
+  "name": "swat",
+  "version": "0.0.1",
+  "description": "Simple Web Application Template",
+  "main": "bin/info",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ericlowry/swat.git"
+  },
+  "author": "Eric Lowry <eric@myrealms.org>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ericlowry/swat/issues"
+  },
+  "homepage": "https://github.com/ericlowry/swat#readme"
+}
