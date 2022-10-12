@@ -4,6 +4,8 @@
 import { createContext, useContext, useState } from 'react';
 import { handleHttpErrors, HttpUnauthorizedError } from 'fetch-http-errors';
 import { useQuery } from 'react-query';
+
+import fetchOptions from '../lib/fetchOptions';
 import fetchAuthSession from '../lib/fetchAuthSession';
 
 const Ctx = createContext();
@@ -41,20 +43,10 @@ export const AuthProvider = ({ children }) => {
 
   async function localLogin(name, password) {
     clearAuthState();
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name,
-        password,
-      }),
-      mode: 'cors',
-      credentials: 'include',
-    };
-
-    return fetch('/auth/local/login', options)
+    return fetch(
+      '/auth/local/login',
+      fetchOptions({ method: 'POST', body: { name, password } })
+    )
       .then(handleHttpErrors)
       .then(res => res.json())
       .then(resJSON => {
@@ -67,15 +59,9 @@ export const AuthProvider = ({ children }) => {
 
   function logout() {
     clearAuthState();
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      mode: 'cors',
-      credentials: 'include',
-    };
-    fetch('/auth/logout', options).then(() => true);
+    return fetch('/auth/logout', fetchOptions({ method: 'POST' }))
+      .then(() => true)
+      .catch(() => false);
   }
 
   return (

@@ -8,6 +8,7 @@ import Landing from '../Landing';
 import Login from '../Login';
 import Dashboard from '../Dashboard';
 import PrivateRoutes from '../PrivateRoutes';
+import Widget from '../Widget';
 
 import useAuth from '../../state/useAuth';
 
@@ -33,6 +34,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route element={<PrivateRoutes />}>
             <Route path="/home" element={<Dashboard />} />
+            <Route path="/widget/:id" element={<Widget />} />
           </Route>
         </Routes>
       </Container>
