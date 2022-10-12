@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+
+const DB = require('../src/lib/db');
+const users = DB('users');
+const makeToken = require('../src/lib/makeToken');
+const { Command } = require('commander');
+
+const program = new Command();
+
+program
+  .name('generate-token')
+  .version(`1.0.0`)
+  .description('generate an access token for a user')
+  .argument('<user>', 'user id')
+  .argument('[duration]', 'duration, default is 15m')
+  .action(async (userId,duration) => {
+    try {
+      const user = await users.get(userId);
+      console.log(makeToken(user,duration));
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+program.parse();
+
+//console.log(program.args)

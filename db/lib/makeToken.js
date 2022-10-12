@@ -30,6 +30,6 @@ module.exports = (user, duration = TOKEN_DURATION) =>
     {
       algorithm: 'HS256',
       expiresIn: duration,
-      keyid: APPLICATION_ID, // i.e. "presto"
+      keyid: APPLICATION_ID, // i.e. "swat"
     }
   );

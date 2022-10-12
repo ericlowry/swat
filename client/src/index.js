@@ -10,6 +10,12 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AuthProvider } from './state/useAuth';
 
+import debug from 'debug';
+if (process.env.REACT_APP_DEBUG) {
+  debug.enable(process.env.REACT_APP_DEBUG);
+  debug.log = console.info.bind(console);
+}
+
 const queryClient = new QueryClient();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

@@ -115,6 +115,8 @@ services:
       - './auth/bin:/opt/auth/bin'
       - './auth/public:/opt/auth/public'
       - './auth/src:/opt/auth/src'
+      - './auth/package.json:/opt/auth/package.json'
+      - './auth/package-lock.json:/opt/auth/package-lock.json'
     environment:
       - 'APPLICATION_ID'
       - 'AUTH_SECRET'
@@ -161,6 +163,8 @@ services:
       - './api/bin:/opt/api/bin'
       - './api/public:/opt/api/public'
       - './api/src:/opt/api/src'
+      - './api/package.json:/opt/api/package.json'
+      - './api/package-lock.json:/opt/api/package-lock.json'
     environment:
       - 'APPLICATION_ID'
       - 'AUTH_SECRET'

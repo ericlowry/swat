@@ -2,7 +2,9 @@
 // useAuth() - Authentication/Authorization State Manager
 //
 import { createContext, useContext, useState } from 'react';
+import { handleHttpErrors, HttpUnauthorizedError } from 'fetch-http-errors';
 import { useQuery } from 'react-query';
+import fetchAuthSession from '../lib/fetchAuthSession';
 
 const Ctx = createContext();
 
@@ -18,18 +20,15 @@ export const AuthProvider = ({ children }) => {
   const { isLoading, error } = useQuery(
     'session',
     () =>
-      fetch('/auth/session', {
-        headers: {
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-      })
-        .then(res => res.json())
-        .then(raw => {
-          setProfile(raw.profile);
-          setSession(raw.data);
-          sessionStorage.setItem('accessToken', raw.token);
+      fetchAuthSession()
+        .then(([myAccessToken, myProfile, mySession]) => {
+          sessionStorage.setItem('accessToken', myAccessToken);
+          setProfile(myProfile);
+          setSession(mySession);
           return true;
+        })
+        .catch(err => {
+          if (!(err instanceof HttpUnauthorizedError)) throw err; // rethrow unexpected errors
         }),
     { refetchOnWindowFocus: false }
   );
@@ -56,10 +55,8 @@ export const AuthProvider = ({ children }) => {
     };
 
     return fetch('/auth/local/login', options)
-      .then(res => {
-        if (!res.ok) throw new Error(`Unable to login (${res.status})`);
-        return res.json();
-      })
+      .then(handleHttpErrors)
+      .then(res => res.json())
       .then(resJSON => {
         setProfile(resJSON.profile);
         setSession(resJSON.data);
