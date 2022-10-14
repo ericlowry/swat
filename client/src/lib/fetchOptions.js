@@ -20,5 +20,6 @@ export default function fetchOptions(opts = {}) {
     options.headers['Content-Type'] = 'application/json';
     options.body = JSON.stringify(body);
   }
+  
   return options;
 }

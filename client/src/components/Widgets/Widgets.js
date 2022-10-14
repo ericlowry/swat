@@ -1,9 +1,7 @@
-import { useState } from 'react';
-
 import { useQuery } from 'react-query';
 import dbViewQueryFn from '../../lib/dbViewQueryFn';
 
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 
 import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
@@ -11,10 +9,17 @@ import Button from 'react-bootstrap/Button';
 
 const pageSize = 5;
 
-export default function Widgets({ ...rest }) {
-  const [skip, setSkip] = useState(0);
+export default function Widgets() {
+  const navigate = useNavigate();
+  const { page } = useParams();
   const { isLoading, error, data, isFetching } = useQuery(
-    ['view', 'widgets', 'default', skip, pageSize],
+    [
+      'view',
+      'widgets',
+      'default',
+      ((Number.parseInt(page) || 1) - 1) * pageSize, // rows to skip
+      pageSize,
+    ],
     dbViewQueryFn,
     { keepPreviousData: true }
   );
@@ -22,16 +27,18 @@ export default function Widgets({ ...rest }) {
   if (isLoading) return 'Loading...';
   if (error) return 'Error';
 
+  const pageNumber = Number.parseInt(page);
+  if (!Number.parseInt(page)) return <Navigate to="/widgets/1" replace />;
+
   const pageCount = Math.ceil(data.total_rows / pageSize);
-  const currPage = skip / pageSize + 1;
 
   return (
-    <div {...rest}>
+    <div>
+      <h1>Widgets</h1>
       <ul className="list-group" style={{ minHeight: '14rem' }}>
         {data.rows.map((row, i) => (
           <li className="list-group-item" key={row.id}>
-            <Link to={`/widget/${row.id}`}>view</Link>{' '}
-            {row.value.label}
+            <Link to={`/widget/${row.id}`}>view</Link> {row.value.label}
             <Badge
               bg={row.value.status === 'inactive' ? 'danger' : 'success'}
               className="ms-1"
@@ -48,18 +55,18 @@ export default function Widgets({ ...rest }) {
       </ul>
       <Stack direction="horizontal" gap={2}>
         <div className="me-auto">
-          Page {currPage} of {pageCount}
+          Page {pageNumber} of {pageCount}
         </div>
         <Button
-          disabled={isFetching || skip === 0}
-          onClick={() => setSkip(prev => prev - 5)}
+          disabled={isFetching || pageNumber === 1}
+          onClick={() => navigate(`/widgets/${pageNumber - 1}`, { replace: true })}
         >
           Prev
         </Button>
         <div className="vr" />
         <Button
-          disabled={isFetching || skip + 5 >= data.total_rows}
-          onClick={() => setSkip(prev => prev + 5)}
+          disabled={isFetching || pageNumber >= pageCount}
+          onClick={() => navigate(`/widgets/${pageNumber + 1}`, { replace: true })}
         >
           Next
         </Button>
