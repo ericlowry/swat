@@ -4,14 +4,20 @@ import { useNavigate } from 'react-router-dom';
 
 //import { Link } from 'react-router-dom'
 
+import { useForm } from 'react-hook-form';
+
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
 import Alert from 'react-bootstrap/Alert';
 
 export default function Login() {
-  const userRef = useRef();
-  const passwordRef = useRef();
+  const {
+    handleSubmit,
+    register,
+    formState: { errors, isSubmitting, isDirty },
+  } = useForm();
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,13 +25,11 @@ export default function Login() {
 
   const navigate = useNavigate();
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-
+  async function onSubmit({ user, password }) {
     try {
       setError('');
       setLoading(true);
-      await localLogin(userRef.current.value, passwordRef.current.value);
+      await localLogin(user, password);
       navigate('/home');
     } catch {
       setError('Failed to log in!');
@@ -40,17 +44,27 @@ export default function Login() {
         <Card style={{ maxWidth: '350px' }}>
           <Card.Body>
             <h2 className="text-center mb-4">Log In</h2>
-            {error && <Alert variant="danger">{error}</Alert>}
-            <Form onSubmit={handleSubmit}>
+            {error && isDirty && <Alert variant="danger">{error}</Alert>}
+            <Form onSubmit={handleSubmit(onSubmit)}>
               <Form.Group id="user">
                 <Form.Label>User</Form.Label>
-                <Form.Control type="text" ref={userRef} required />
+                <Form.Control
+                  type="text"
+                  {...register('user', { required: 'User is required' })}
+                />
+                {errors['user'] && <p>{errors['user']?.message}</p>}
               </Form.Group>
-              <Form.Group id="password">
+              <Form.Group id="password" className="mt-2">
                 <Form.Label>Password</Form.Label>
-                <Form.Control type="password" ref={passwordRef} required />
+                <Form.Control
+                  type="password"
+                  {...register('password', {
+                    required: 'Password is required',
+                  })}
+                />
+                {errors['password'] && <p>{errors['password']?.message}</p>}
               </Form.Group>
-              <Button disabled={loading} className="w-100 mt-4" type="submit">
+              <Button className="w-100 mt-4" type="submit">
                 Log In
               </Button>
             </Form>
