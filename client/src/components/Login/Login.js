@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import useAuth from '../../state/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -15,7 +15,7 @@ export default function Login() {
   const {
     handleSubmit,
     register,
-    formState: { errors, isSubmitting, isDirty },
+    formState: { errors },
   } = useForm();
 
   const [error, setError] = useState('');
@@ -34,7 +34,6 @@ export default function Login() {
     } catch {
       setError('Failed to log in!');
     }
-
     setLoading(false);
   }
 
@@ -44,18 +43,18 @@ export default function Login() {
         <Card style={{ maxWidth: '350px' }}>
           <Card.Body>
             <h2 className="text-center mb-4">Log In</h2>
-            {error && isDirty && <Alert variant="danger">{error}</Alert>}
+            {error && <Alert variant="danger">{error}</Alert>}
             <Form onSubmit={handleSubmit(onSubmit)}>
               <Form.Group id="user">
-                <Form.Label>User</Form.Label>
+                <Form.Label htmlFor="user">User</Form.Label>
                 <Form.Control
                   type="text"
                   {...register('user', { required: 'User is required' })}
                 />
                 {errors['user'] && <p>{errors['user']?.message}</p>}
               </Form.Group>
-              <Form.Group id="password" className="mt-2">
-                <Form.Label>Password</Form.Label>
+              <Form.Group id="password" className="mt-3">
+                <Form.Label htmlFor="password">Password</Form.Label>
                 <Form.Control
                   type="password"
                   {...register('password', {
@@ -64,7 +63,7 @@ export default function Login() {
                 />
                 {errors['password'] && <p>{errors['password']?.message}</p>}
               </Form.Group>
-              <Button className="w-100 mt-4" type="submit">
+              <Button disabled={loading} className="w-100 mt-4" type="submit">
                 Log In
               </Button>
             </Form>
