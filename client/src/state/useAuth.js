@@ -1,39 +1,40 @@
 //
 // useAuth() - Authentication/Authorization State Manager
 //
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { handleHttpErrors, HttpUnauthorizedError } from 'fetch-http-errors';
-import { useQuery } from 'react-query';
 
 import fetchOptions from '../lib/fetchOptions';
 import fetchAuthSession from '../lib/fetchAuthSession';
 
 const Ctx = createContext();
 
-// on page load, ensure the token is empty
+// on page load, ensure that we don't have a token
 sessionStorage.setItem('accessToken', '');
 
 //
 // Provider
 //
 export const AuthProvider = ({ children }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState();
   const [profile, setProfile] = useState();
   const [session, setSession] = useState();
-  const { isLoading, error } = useQuery(
-    'session',
-    () =>
-      fetchAuthSession()
-        .then(([myAccessToken, myProfile, mySession]) => {
-          sessionStorage.setItem('accessToken', myAccessToken);
-          setProfile(myProfile);
-          setSession(mySession);
-          return true;
-        })
-        .catch(err => {
-          if (!(err instanceof HttpUnauthorizedError)) throw err; // rethrow unexpected errors
-        }),
-    { refetchOnWindowFocus: false }
-  );
+
+  useEffect(() => {
+    fetchAuthSession()
+      .then(([myAccessToken, myProfile, mySession]) => {
+        sessionStorage.setItem('accessToken', myAccessToken);
+        setProfile(myProfile);
+        setSession(mySession);
+      })
+      .catch(err => {
+        if (!(err instanceof HttpUnauthorizedError)) setError(err); // rethrow unexpected errors
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   function clearAuthState() {
     setProfile();
