@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
 import dbDocQueryFn from '../../lib/dbDocQueryFn';
+import dbDocMutateFn from '../../lib/dbDocMutateFn';
 import { useForm } from 'react-hook-form';
 
 import Form from 'react-bootstrap/Form';
@@ -10,13 +11,27 @@ import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 
 function EditWidget({ widget }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const mutation = useMutation(
+    doc => {
+      return dbDocMutateFn('widgets', doc._id, doc);
+    },
+    {
+      onSuccess: data => {
+        queryClient.invalidateQueries(['widgets', data.id]);
+      },
+    }
+  );
+
   const {
     handleSubmit,
     register,
     formState: { errors },
   } = useForm({
     defaultValues: {
-      id: widget._id,
+      _id: widget._id,
+      _rev: widget._rev,
       label: widget.label,
       status: widget.status,
       tags: widget.tags.join(','),
@@ -24,32 +39,53 @@ function EditWidget({ widget }) {
   });
 
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const onSubmit = data => {
-    console.log(data);
-  }
+    const doc = {
+      _id: data._id,
+      _rev: data._rev,
+      type: 'widget',
+      label: data.label,
+      status: data.status,
+      tags: data.tags.replace(/ /g, '').split(','),
+    };
+    //console.log(doc);
+    mutation.mutate(doc, {
+      onSuccess: (data, variables, context) => {
+        navigate('/widgets/1');
+      },
+      onError: err => {
+        setError('oops - try again later');
+      },
+    });
+  };
 
   return (
     <>
-      <pre>{JSON.stringify(widget, null, 2)}</pre>{' '}
+      {}
       <div className="d-flex justify-content-center mt-5">
-        <Card style={{ maxWidth: '350px' }}>
+        <Card style={{ minWidth: '700px' }}>
           <Card.Body>
             <h2 className="text-center mb-4">Widget</h2>
             {error && <Alert variant="danger">{error}</Alert>}
             <Form onSubmit={handleSubmit(onSubmit)}>
-              <Form.Group id="id" className="mb-3">
-                <Form.Label htmlFor="id">ID</Form.Label>
+              <Form.Group className="mb-3">
+                <Form.Label>ID / Revision</Form.Label>
+                <Form.Control type="text" {...register('_id')} disabled />
                 <Form.Control
                   type="text"
-                  {...register('id', { required: 'ID is required' })}
+                  {...register('_rev', {
+                    validate: rev => rev === widget._rev,
+                  })}
                   disabled
                 />
-                <Form.Text className="text-muted">
-                  id can't be changed after creation
-                </Form.Text>
-                {errors['user'] && <p>{errors['id']?.message}</p>}
+                {errors['_rev'] && (
+                  <p>
+                    {errors['_rev'].type === 'validate'
+                      ? 'widget was changed behind your back, reload and try again.'
+                      : errors['_rev']?.message || 'oops! bad revision'}
+                  </p>
+                )}
               </Form.Group>
               <Form.Group id="label" className="mb-3">
                 <Form.Label htmlFor="label">Label</Form.Label>
@@ -74,7 +110,11 @@ function EditWidget({ widget }) {
                 </Form.Text>
                 {errors['label'] && <p>{errors['label']?.message}</p>}
               </Form.Group>
-              <Button disabled={loading} className="w-100 mt-4" type="submit">
+              <Button
+                disabled={mutation.isLoading}
+                className="w-100 mt-4"
+                type="submit"
+              >
                 Update
               </Button>
             </Form>
@@ -87,10 +127,7 @@ function EditWidget({ widget }) {
 
 export default function Widget() {
   const { id } = useParams();
-  const { isLoading, error, data } = useQuery(
-    ['doc', 'widgets', id],
-    dbDocQueryFn
-  );
+  const { isLoading, error, data } = useQuery(['widgets', id], dbDocQueryFn);
 
   if (isLoading) return 'loading...';
 
