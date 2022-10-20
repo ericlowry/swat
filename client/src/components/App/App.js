@@ -14,6 +14,8 @@ import PrivateRoutes from '../PrivateRoutes';
 import Widget from '../Widget';
 import Widgets from '../Widgets';
 
+import { ReactQueryDevtools } from 'react-query/devtools';
+
 const NotFound = () => <h1>Not Found (404)</h1>;
 const About = () => <h1>About</h1>;
 
@@ -43,6 +45,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Container>
+      <ReactQueryDevtools />
     </>
   );
 }
