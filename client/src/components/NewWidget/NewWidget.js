@@ -11,6 +11,7 @@ import Card from 'react-bootstrap/Card';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
+import fetchIt from '../../lib/fetchIt';
 
 export default function NewWidget() {
   const navigate = useNavigate();
@@ -68,10 +69,18 @@ export default function NewWidget() {
                 <Form.Label>ID</Form.Label>
                 <Form.Control
                   type="text"
-                  {...register('_id')}
+                  {...register('_id', {
+                    required: true,
+                    validate: {
+                      isUnique: value =>
+                        fetchIt(`/api/is-unique/widgets/by-id/${value.trim()}`).then(
+                          res => res.unique
+                        ),
+                    },
+                  })}
                   spellCheck={false}
                 />
-                {errors['_id'] && <p>{errors['_rev']?.message}</p>}
+                {errors['_id'] && <p>{errors['_id'].type === 'isUnique' ? 'id is not unique' : errors['_id'].message || errors['_id'].type }</p>}
               </Form.Group>
               <Form.Group id="label" className="mb-3">
                 <Form.Label htmlFor="label">Label</Form.Label>
@@ -97,7 +106,11 @@ export default function NewWidget() {
                 {errors['label'] && <p>{errors['label']?.message}</p>}
               </Form.Group>
               <Stack direction="horizontal" gap={2}>
-                <Button className="me-auto w-100" disabled={mutation.isLoading} type="submit">
+                <Button
+                  className="me-auto w-100"
+                  disabled={mutation.isLoading}
+                  type="submit"
+                >
                   Create
                 </Button>
                 <Button
