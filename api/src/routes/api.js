@@ -55,6 +55,7 @@ router.use(
       `/_design/${APPLICATION_ID}-api` +
       `/_view/${view}` +
       `?reduce=false` +
+      `&limit=2` +
       `&key=[${JSON.stringify(key)}]`;
 
     debug(uri);
