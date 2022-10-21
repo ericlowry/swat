@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import dbDocQueryFn from '../../lib/dbDocQueryFn';
-import dbDocMutateFn from '../../lib/dbDocMutateFn';
 import { useForm } from 'react-hook-form';
 
 import Form from 'react-bootstrap/Form';
@@ -11,10 +9,12 @@ import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 
+import { retrieveWidget, updateWidget } from '../../models/widgetModel';
+
 function EditWidget({ widget }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const mutation = useMutation(dbDocMutateFn('widgets'), {
+  const mutation = useMutation(updateWidget, {
     onSuccess: data => {
       queryClient.invalidateQueries(['widgets', data.id]);
     },
@@ -107,7 +107,11 @@ function EditWidget({ widget }) {
                 {errors['label'] && <p>{errors['label']?.message}</p>}
               </Form.Group>
               <Stack direction="horizontal" gap={2}>
-                <Button className="me-auto w-100" disabled={mutation.isLoading} type="submit">
+                <Button
+                  className="me-auto w-100"
+                  disabled={mutation.isLoading}
+                  type="submit"
+                >
                   Update
                 </Button>
                 <Button
@@ -128,7 +132,9 @@ function EditWidget({ widget }) {
 
 export default function Widget() {
   const { id } = useParams();
-  const { isLoading, error, data } = useQuery(['widgets', id], dbDocQueryFn);
+  const { isLoading, error, data } = useQuery(['widgets', id], () =>
+    retrieveWidget(id)
+  );
 
   if (isLoading) return 'loading...';
 

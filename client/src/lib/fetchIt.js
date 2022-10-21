@@ -20,9 +20,12 @@ export default function fetchIt(resource, options) {
   const accessToken = sessionStorage.getItem('accessToken');
   return fetch(resource, fetchOptions({ ...options, accessToken }))
     .then(handleHttpErrors)
-    .then(res => res.json()) // success on the first attempt
+    .then(res => res.json()) // success on the first attemptq
     .catch(err => {
-      if (!(err instanceof HttpUnauthorizedError)) throw err; // unexpected error, rethrow it
+      if (!(err instanceof HttpUnauthorizedError)) {
+        //debug(err);
+        throw err; // unexpected error, rethrow it
+      }
       debug('refreshing accessToken');
       return fetchAuthSession().then(([accessToken]) => {
         sessionStorage.setItem('accessToken', accessToken); // save it for later

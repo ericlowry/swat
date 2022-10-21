@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
-import dbDocQueryFn from '../../lib/dbDocQueryFn';
-import dbDocMutateFn from '../../lib/dbDocMutateFn';
+import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from 'react-query';
 import { useForm } from 'react-hook-form';
 import { generate as uuid } from 'short-uuid';
 
@@ -13,10 +11,13 @@ import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 import fetchIt from '../../lib/fetchIt';
 
+import { createWidget, widgetExists } from '../../models/widgetModel';
+import { HttpConflictError } from 'fetch-http-errors';
+
 export default function NewWidget() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const mutation = useMutation(dbDocMutateFn('widgets'), {
+  const mutation = useMutation(createWidget, {
     onSuccess: () => {
       queryClient.invalidateQueries(['widgets']);
     },
@@ -37,6 +38,10 @@ export default function NewWidget() {
 
   const [error, setError] = useState('');
 
+  const FieldError = field => (
+    <div className="invalid-feedback">{errors[field]?.message}</div>
+  );
+
   const onSubmit = data => {
     const doc = {
       _id: data._id,
@@ -47,11 +52,16 @@ export default function NewWidget() {
     };
     //console.log(doc);
     mutation.mutate(doc, {
-      onSuccess: (data, variables, context) => {
+      onSuccess: data => {
+        console.log(data);
         navigate(-1);
       },
-      onError: err => {
-        setError('oops - try again later');
+      onError: (err, data) => {
+        if (err instanceof HttpConflictError) {
+          setError(`document with ${data._id} already exists`);
+        } else {
+          setError('unable to create document - try again later');
+        }
       },
     });
   };
@@ -65,22 +75,22 @@ export default function NewWidget() {
             <h2 className="text-center mb-4">Widget</h2>
             {error && <Alert variant="danger">{error}</Alert>}
             <Form onSubmit={handleSubmit(onSubmit)}>
-              <Form.Group id="id" className="mb-3">
+              <Form.Group controlId="customId" className="mb-3">
                 <Form.Label>ID</Form.Label>
                 <Form.Control
                   type="text"
                   {...register('_id', {
-                    required: true,
+                    required: 'ID is required',
                     validate: {
                       isUnique: value =>
-                        fetchIt(`/api/is-unique/widgets/by-id/${value.trim()}`).then(
-                          res => res.unique
+                        widgetExists(value.trim()).then(exists =>
+                          exists ? `Document ID already exists` : true
                         ),
                     },
                   })}
                   spellCheck={false}
-                />
-                {errors['_id'] && <p>{errors['_id'].type === 'isUnique' ? 'id is not unique' : errors['_id'].message || errors['_id'].type }</p>}
+                  />
+                {errors['_id'] && <p className="text-danger">{errors['_id'].message || 'bad id'}</p>}
               </Form.Group>
               <Form.Group id="label" className="mb-3">
                 <Form.Label htmlFor="label">Label</Form.Label>
