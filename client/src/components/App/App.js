@@ -40,6 +40,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route element={<PrivateRoutes />}>
             <Route path="/home" element={<Dashboard />} />
+            <Route path="/widgets" element={<Widgets />} />
             <Route path="/widgets/:page" element={<Widgets />} />
             <Route path="/widget/:id" element={<Widget />} />
             <Route path="/new-widget" element={<NewWidget />} />
