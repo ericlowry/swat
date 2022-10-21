@@ -34,7 +34,10 @@ export default function Widgets() {
 
   return (
     <div>
-      <h1>Widgets</h1>
+      <Stack direction="horizontal" gap={2}>
+        <h1 className="me-auto">Widgets</h1>
+        <Button onClick={() => navigate('/new-widget')}>Add</Button>
+      </Stack>
       <ul className="list-group" style={{ minHeight: '14rem' }}>
         {data.rows.map((row, i) => (
           <li className="list-group-item" key={row.id}>
@@ -59,14 +62,18 @@ export default function Widgets() {
         </div>
         <Button
           disabled={isFetching || pageNumber === 1}
-          onClick={() => navigate(`/widgets/${pageNumber - 1}`, { replace: true })}
+          onClick={() =>
+            navigate(`/widgets/${pageNumber - 1}`, { replace: true })
+          }
         >
           Prev
         </Button>
         <div className="vr" />
         <Button
           disabled={isFetching || pageNumber >= pageCount}
-          onClick={() => navigate(`/widgets/${pageNumber + 1}`, { replace: true })}
+          onClick={() =>
+            navigate(`/widgets/${pageNumber + 1}`, { replace: true })
+          }
         >
           Next
         </Button>

@@ -12,6 +12,7 @@ import Login from '../Login';
 import Dashboard from '../Dashboard';
 import PrivateRoutes from '../PrivateRoutes';
 import Widget from '../Widget';
+import NewWidget from '../NewWidget';
 import Widgets from '../Widgets';
 
 import { ReactQueryDevtools } from 'react-query/devtools';
@@ -41,6 +42,7 @@ function App() {
             <Route path="/home" element={<Dashboard />} />
             <Route path="/widgets/:page" element={<Widgets />} />
             <Route path="/widget/:id" element={<Widget />} />
+            <Route path="/new-widget" element={<NewWidget />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

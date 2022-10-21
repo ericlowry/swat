@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import dbDocQueryFn from '../../lib/dbDocQueryFn';
 import dbDocMutateFn from '../../lib/dbDocMutateFn';
 import { useForm } from 'react-hook-form';
+import { generate as uuid } from 'short-uuid';
 
 import Form from 'react-bootstrap/Form';
 import Card from 'react-bootstrap/Card';
@@ -11,12 +12,12 @@ import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
 
-function EditWidget({ widget }) {
+export default function NewWidget() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const mutation = useMutation(dbDocMutateFn('widgets'), {
-    onSuccess: data => {
-      queryClient.invalidateQueries(['widgets', data.id]);
+    onSuccess: () => {
+      queryClient.invalidateQueries(['widgets']);
     },
   });
 
@@ -26,11 +27,10 @@ function EditWidget({ widget }) {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      _id: widget._id,
-      _rev: widget._rev,
-      label: widget.label,
-      status: widget.status,
-      tags: widget.tags.join(','),
+      _id: uuid(),
+      label: '',
+      status: 'active',
+      tags: '',
     },
   });
 
@@ -39,7 +39,6 @@ function EditWidget({ widget }) {
   const onSubmit = data => {
     const doc = {
       _id: data._id,
-      _rev: data._rev,
       type: 'widget',
       label: data.label,
       status: data.status,
@@ -65,23 +64,14 @@ function EditWidget({ widget }) {
             <h2 className="text-center mb-4">Widget</h2>
             {error && <Alert variant="danger">{error}</Alert>}
             <Form onSubmit={handleSubmit(onSubmit)}>
-              <Form.Group className="mb-3">
-                <Form.Label>ID / Revision</Form.Label>
-                <Form.Control type="text" {...register('_id')} disabled />
+              <Form.Group id="id" className="mb-3">
+                <Form.Label>ID</Form.Label>
                 <Form.Control
                   type="text"
-                  {...register('_rev', {
-                    validate: rev => rev === widget._rev,
-                  })}
-                  disabled
+                  {...register('_id')}
+                  spellCheck={false}
                 />
-                {errors['_rev'] && (
-                  <p>
-                    {errors['_rev'].type === 'validate'
-                      ? 'widget was changed behind your back, reload and try again.'
-                      : errors['_rev']?.message || 'oops! bad revision'}
-                  </p>
-                )}
+                {errors['_id'] && <p>{errors['_rev']?.message}</p>}
               </Form.Group>
               <Form.Group id="label" className="mb-3">
                 <Form.Label htmlFor="label">Label</Form.Label>
@@ -108,7 +98,7 @@ function EditWidget({ widget }) {
               </Form.Group>
               <Stack direction="horizontal" gap={2}>
                 <Button className="me-auto w-100" disabled={mutation.isLoading} type="submit">
-                  Update
+                  Create
                 </Button>
                 <Button
                   variant="secondary"
@@ -124,18 +114,4 @@ function EditWidget({ widget }) {
       </div>
     </>
   );
-}
-
-export default function Widget() {
-  const { id } = useParams();
-  const { isLoading, error, data } = useQuery(['widgets', id], dbDocQueryFn);
-
-  if (isLoading) return 'loading...';
-
-  if (error) {
-    console.error(error);
-    return 'error...';
-  }
-
-  return <EditWidget widget={data} />;
 }
