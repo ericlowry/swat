@@ -62,7 +62,6 @@ services:
       - './lib:/opt/lib'
       - './db/lib:/opt/db/lib'
       - './db/bin:/opt/db/bin'
-      - './db/models:/opt/db/models'
     environment:
       - 'APPLICATION_ID'
       - 'AUTH_SECRET'
