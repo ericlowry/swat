@@ -11,7 +11,8 @@ services:
   # traefik - application ingress
   #
   traefik:
-    image: 'traefik:v2.8.8' # latest as of 2022-10-01
+    #image: 'traefik:v2.8.8' # latest as of 2022-10-01
+    image: 'traefik:v3.1.5' # latest as of 2024-10-05
     ports:
       # http "web" traffic
       - '80:80'
