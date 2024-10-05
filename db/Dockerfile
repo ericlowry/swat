@@ -1,6 +1,6 @@
 
-# latest as of 2022-10-01
-FROM couchdb:3.2
+# latest as of 2024-10-05
+FROM couchdb:3.3.3
 
 # install nodejs 14.x
 RUN apt-get update && apt-get install -y curl gnupg gcc g++ make
