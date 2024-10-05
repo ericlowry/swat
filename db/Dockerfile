@@ -2,9 +2,9 @@
 # latest as of 2024-10-05
 FROM couchdb:3.3.3
 
-# install nodejs 14.x
+# install nodejs 22.x
 RUN apt-get update && apt-get install -y curl gnupg gcc g++ make
-RUN curl -sL https://deb.nodesource.com/setup_14.x  | bash -
+RUN curl -sL https://deb.nodesource.com/setup_22.x  | bash -
 RUN apt-get -y install nodejs
 RUN npm config --global set fund false
 RUN npm config --global set update-notifier false
