@@ -6,12 +6,19 @@ volumes:
   db-data:
   cache-data:
 
+secrets:
+  AUTH_SECRET:
+    environment: AUTH_SECRET
+  COUCHDB_USER:
+    environment: ADMIN_USER
+  COUCHDB_PASSWORD:
+    environment: ADMIN_PASSWORD
+
 services:
   #
   # traefik - application ingress
   #
   traefik:
-    #image: 'traefik:v2.8.8' # latest as of 2022-10-01
     image: 'traefik:v3.1.5' # latest as of 2024-10-05
     ports:
       # http "web" traffic
@@ -50,7 +57,10 @@ services:
       dockerfile: './db/Dockerfile'
       args:
         - 'APPLICATION_ID'
+      secrets:
         - 'AUTH_SECRET'
+        - 'COUCHDB_USER'
+        - 'COUCHDB_PASSWORD'
     depends_on:
       - 'traefik'
     expose:
@@ -59,15 +69,12 @@ services:
       - '5984:5984'
     volumes:
       - 'db-data:/opt/couchdb/data'
-      - './lib:/opt/lib'
-      - './db/lib:/opt/db/lib'
-      - './db/bin:/opt/db/bin'
     environment:
       - 'APPLICATION_ID'
+    secrets:
       - 'AUTH_SECRET'
-      - 'COUCHDB_USER=${ADMIN_USER}'
-      - 'COUCHDB_PASSWORD=${ADMIN_PASSWORD}'
-      - 'COUCHDB=http://${ADMIN_USER}:${ADMIN_PASSWORD}@db:5984'
+      - 'COUCHDB_USER'
+      - 'COUCHDB_PASSWORD'
     labels:
       - 'traefik.enable=true'
       # service db-service
