@@ -1,4 +1,4 @@
-FROM node:16 AS build-client-html
+FROM node:22 AS build-client-html
 
 RUN npm config --global set fund false
 RUN npm config --global set update-notifier false

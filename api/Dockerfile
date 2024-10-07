@@ -1,4 +1,4 @@
-FROM node:14
+FROM node:22
 
 # Add the docker-ce-cli tools to the container
 RUN apt-get update \
