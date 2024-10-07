@@ -9,7 +9,7 @@ import Card from 'react-bootstrap/Card';
 import Alert from 'react-bootstrap/Alert';
 import Button from 'react-bootstrap/Button';
 import Stack from 'react-bootstrap/Stack';
-import fetchIt from '../../lib/fetchIt';
+//import fetchIt from '../../lib/fetchIt';
 
 import { createWidget, widgetExists } from '../../models/widgetModel';
 import { HttpConflictError } from 'fetch-http-errors';
