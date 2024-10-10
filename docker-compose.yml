@@ -134,6 +134,8 @@ services:
       - 'TOKEN_DURATION'
       - 'CLIENT_REDIRECT'
       - 'DEBUG=${DEBUG_AUTH}'
+    secrets:
+      - 'AUTH_SECRET'
     tty: true
     command: 'sh -c "nodemon --quiet --watch ./src ./bin/auth-service"'
     labels:
