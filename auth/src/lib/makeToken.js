@@ -12,7 +12,9 @@
 //
 const jwt = require('jsonwebtoken');
 
-const { APPLICATION_ID, AUTH_SECRET, TOKEN_DURATION = '15m' } = process.env;
+const { AUTH_SECRET } = require('./secrets');
+
+const { APPLICATION_ID, TOKEN_DURATION = '15m' } = process.env;
 
 module.exports = (user, duration = TOKEN_DURATION) =>
   //

@@ -9,8 +9,6 @@ const { NotFound } = require('http-errors');
 
 [
   'APPLICATION_ID',
-  'COUCHDB',
-  'AUTH_SECRET',
   'REDIS',
   'SESSION_DURATION',
   'TOKEN_DURATION',
