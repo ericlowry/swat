@@ -38,6 +38,7 @@ export default function NewWidget() {
 
   const [error, setError] = useState('');
 
+  // eslint-disable-next-line
   const FieldError = field => (
     <div className="invalid-feedback">{errors[field]?.message}</div>
   );
