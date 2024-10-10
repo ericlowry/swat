@@ -5,8 +5,6 @@ const COUCHDB_PASSWORD =  fs.readFileSync('/run/secrets/COUCHDB_PASSWORD');
 
 const COUCHDB = `http://${COUCHDB_USER}:${COUCHDB_PASSWORD}@db:5984`
 
-console.log(COUCHDB);
-
 module.exports = {
     AUTH_SECRET,
     COUCHDB
