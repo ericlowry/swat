@@ -1,0 +1,31 @@
+# quick test routes
+
+###
+# service version 
+GET https://localhost/api/version
+
+###
+# service status
+GET https://localhost/api/_up
+
+###
+# local login
+POST https://localhost/auth/local/login
+Content-Type: application/json
+
+{
+    "name": "{{$dotenv ADMIN_USER}}",
+    "password": "{{$dotenv ADMIN_PASSWORD}}"
+}
+
+###
+# check user's session (and generate a new token)
+GET https://localhost/auth/session
+
+###
+# api tests here...
+
+###
+# logout current users/session
+POST https://localhost/auth/logout
+Content-Type: application/json
