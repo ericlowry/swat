@@ -1,16 +1,18 @@
 # quick test routes
 
+@baseUrl = https://localhost
+
 ###
 # service version 
-GET https://localhost/auth/version
+GET {{baseUrl}}/auth/version
 
 ###
 # service status
-GET https://localhost/auth/_up
+GET {{baseUrl}}/auth/_up
 
 ###
 # local login
-POST https://localhost/auth/local/login
+POST {{baseUrl}}/auth/local/login
 Content-Type: application/json
 
 {
@@ -20,9 +22,9 @@ Content-Type: application/json
 
 ###
 # check user's session (and generate a new token)
-GET https://localhost/auth/session
+GET {{baseUrl}}/auth/session
 
 ###
 # logout current users/session
-POST https://localhost/auth/logout
+POST {{baseUrl}}/auth/logout
 Content-Type: application/json
