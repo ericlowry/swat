@@ -10,8 +10,6 @@ const { NotFound } = require("http-errors");
 const apiRouter = require("./routes/api");
 
 assert(process.env.APPLICATION_ID, "missing APPLICATION_ID env var");
-assert(process.env.AUTH_SECRET, "missing AUTH_SECRET env var");
-assert(process.env.COUCHDB, "missing COUCHDB env var");
 assert(process.env.REDIS, "missing COUCHDB env var");
 
 const app = express();

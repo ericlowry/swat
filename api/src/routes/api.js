@@ -5,7 +5,8 @@ const _debug = require('debug');
 const express = require('express');
 const router = express.Router();
 const pkg = require('../../package.json');
-const nano = require('nano')(process.env.COUCHDB);
+const { AUTH_SECRET, COUCHDB } = require('../lib/secrets');
+const nano = require('nano')(COUCHDB);
 const { NotAcceptable } = require('http-errors');
 const { APPLICATION_ID } = process.env;
 
@@ -36,7 +37,7 @@ router.get('/version', function (req, res) {
 // GET /secret - only admins can request the secret
 //
 router.get('/secret', tokenAuthorization, hasRole('_admin'), (req, res) => {
-  res.send({ secret: process.env.AUTH_SECRET });
+  res.send({ secret: AUTH_SECRET });
 });
 
 //

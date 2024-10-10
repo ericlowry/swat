@@ -6,7 +6,7 @@
 const debug = require("debug")("api:authorization");
 const { createError, Unauthorized } = require("http-errors");
 const jwt = require("jsonwebtoken");
-const { AUTH_SECRET } = process.env;
+const { AUTH_SECRET } = require('../lib/secrets')
 
 module.exports = (req, _, next) => {
   // has this middleware already been applied?

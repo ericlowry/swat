@@ -175,12 +175,14 @@ services:
       - './api/package-lock.json:/opt/api/package-lock.json'
     environment:
       - 'APPLICATION_ID'
-      - 'AUTH_SECRET'
       - 'NODE_ENV'
       - 'PORT=80'
-      - 'COUCHDB=http://${ADMIN_USER}:${ADMIN_PASSWORD}@db:5984'
       - 'REDIS=redis://cache'
       - 'DEBUG=${DEBUG_API}'
+    secrets:
+      - 'AUTH_SECRET'
+      - 'COUCHDB_USER'
+      - 'COUCHDB_PASSWORD'
     tty: true
     command: 'sh -c "nodemon --quiet --watch ./src ./bin/api-service"'
     labels:

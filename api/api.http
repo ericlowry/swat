@@ -1,16 +1,18 @@
 # quick test routes
 
+@baseUrl = https://localhost
+
 ###
 # service version 
-GET https://localhost/api/version
+GET {{baseUrl}}/api/version
 
 ###
 # service status
-GET https://localhost/api/_up
+GET {{baseUrl}}/api/_up
 
 ###
 # local login
-POST https://localhost/auth/local/login
+POST {{baseUrl}}/auth/local/login
 Content-Type: application/json
 
 {
@@ -20,12 +22,15 @@ Content-Type: application/json
 
 ###
 # check user's session (and generate a new token)
-GET https://localhost/auth/session
+# @name session
+GET {{baseUrl}}/auth/session
 
 ###
 # api tests here...
+GET {{baseUrl}}/api/secret
+Authorization: token {{session.response.body.token}}
 
 ###
 # logout current users/session
-POST https://localhost/auth/logout
+POST {{baseUrl}}/auth/logout
 Content-Type: application/json
