@@ -9,7 +9,7 @@ const cache = require('../lib/cache');
 // GET /_up - service is up!
 //
 router.get('/_up', (req, res) => {
-  res.send({ status: 'ok', services: ['api', 'cache'] });
+  res.send({ status: 'ok', services: ['auth', 'cache'] });
 });
 
 //
