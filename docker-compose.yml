@@ -276,14 +276,12 @@ services:
       - './client/src:/opt/client/src'
       - './client/package.json:/opt/client/package.json'
       - './client/package-lock.json:/opt/client/package-lock.json'
-    #environment:
-      #- 'PORT=80'
+    environment:
       # we need these here for NODE_ENV='development'
-      #- 'REACT_APP_DEBUG=${DEBUG_CLIENT}'
-      #- 'REACT_APP_APPLICATION_ID=${APPLICATION_ID}'
-      #- 'REACT_APP_CLIENT_BRAND=${CLIENT_BRAND}'
-      #- 'REACT_APP_CLIENT_NAME=${CLIENT_NAME}'
-      #- 'WDS_SOCKET_PORT=443'
+      - 'VITE_DEBUG=${DEBUG_CLIENT}'
+      - 'VITE_APPLICATION_ID=${APPLICATION_ID}'
+      - 'VITE_CLIENT_BRAND=${CLIENT_BRAND}'
+      - 'VITE_CLIENT_NAME=${CLIENT_NAME}'
     #tty: false
     #command: 'sh -c "npm start"'
     labels:
