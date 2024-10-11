@@ -269,9 +269,9 @@ services:
       - "5173:5173"
     depends_on:
       - 'traefik'
-      #- 'db'
-      #- 'auth'
-      #- 'api'
+      - 'db'
+      - 'auth'
+      - 'api'
     volumes:
       - './client/src:/opt/client/src'
       - './client/package.json:/opt/client/package.json'
