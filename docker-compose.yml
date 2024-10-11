@@ -206,41 +206,90 @@ services:
   #
   # client - Serve the client site
   #
+  # client:
+  #   build:
+  #     context: '.'
+  #     dockerfile: './client/Dockerfile.${NODE_ENV}'
+  #     args:
+  #       # we need these here for NODE_ENV='production' (see below)'
+  #       - 'REACT_APP_DEBUG=${DEBUG_CLIENT}'
+  #       - 'REACT_APP_APPLICATION_ID=${APPLICATION_ID}'
+  #       - 'REACT_APP_CLIENT_BRAND=${CLIENT_BRAND}'
+  #       - 'REACT_APP_CLIENT_NAME=${CLIENT_NAME}'
+  #   expose:
+  #     - '80'
+  #   depends_on:
+  #     - 'traefik'
+  #     - 'db'
+  #     - 'auth'
+  #     - 'api'
+  #   volumes:
+  #     - './client/src:/opt/client/src'
+  #     - './client/package.json:/opt/client/package.json'
+  #     - './client/package-lock.json:/opt/client/package-lock.json'
+  #   environment:
+  #     - 'PORT=80'
+  #     # we need these here for NODE_ENV='development'
+  #     - 'REACT_APP_DEBUG=${DEBUG_CLIENT}'
+  #     - 'REACT_APP_APPLICATION_ID=${APPLICATION_ID}'
+  #     - 'REACT_APP_CLIENT_BRAND=${CLIENT_BRAND}'
+  #     - 'REACT_APP_CLIENT_NAME=${CLIENT_NAME}'
+  #     - 'WDS_SOCKET_PORT=443'
+  #   tty: false
+  #   #command: 'sh -c "npm start"'
+  #   labels:
+  #     - 'traefik.enable=true'
+  #     # service client-service
+  #     - 'traefik.http.services.client-service.loadbalancer.server.port=80'
+  #     # Note: for development, this is terrible; but for prod? - awesome!
+  #     # middlware https-redirect
+  #     #- 'traefik.http.middlewares.https-redirect.redirectscheme.scheme=https'
+  #     #- 'traefik.http.middlewares.https-redirect.redirectscheme.permanent=true'
+  #     # router client-https
+  #     - 'traefik.http.routers.client-https.service=client-service'
+  #     - 'traefik.http.routers.client-https.entrypoints=web-secure'
+  #     - 'traefik.http.routers.client-https.rule=PathPrefix(`/`)'
+  #     - 'traefik.http.routers.client-https.tls=true'
+  #     # router client-http
+  #     - 'traefik.http.routers.client-http.service=client-service'
+  #     - 'traefik.http.routers.client-http.entrypoints=web'
+  #     - 'traefik.http.routers.client-http.rule=PathPrefix(`/`)'
+  #     #- 'traefik.http.routers.client-http.middlewares=https-redirect'
+
+  #
+  # client - Serve the client site
+  #
   client:
     build:
       context: '.'
       dockerfile: './client/Dockerfile.${NODE_ENV}'
-      args:
-        # we need these here for NODE_ENV='production' (see below)'
-        - 'REACT_APP_DEBUG=${DEBUG_CLIENT}'
-        - 'REACT_APP_APPLICATION_ID=${APPLICATION_ID}'
-        - 'REACT_APP_CLIENT_BRAND=${CLIENT_BRAND}'
-        - 'REACT_APP_CLIENT_NAME=${CLIENT_NAME}'
     expose:
-      - '80'
+      - '5173'
+    ports:
+      - "5173:5173"
     depends_on:
       - 'traefik'
-      - 'db'
-      - 'auth'
-      - 'api'
+      #- 'db'
+      #- 'auth'
+      #- 'api'
     volumes:
       - './client/src:/opt/client/src'
       - './client/package.json:/opt/client/package.json'
       - './client/package-lock.json:/opt/client/package-lock.json'
-    environment:
-      - 'PORT=80'
+    #environment:
+      #- 'PORT=80'
       # we need these here for NODE_ENV='development'
-      - 'REACT_APP_DEBUG=${DEBUG_CLIENT}'
-      - 'REACT_APP_APPLICATION_ID=${APPLICATION_ID}'
-      - 'REACT_APP_CLIENT_BRAND=${CLIENT_BRAND}'
-      - 'REACT_APP_CLIENT_NAME=${CLIENT_NAME}'
-      - 'WDS_SOCKET_PORT=443'
-    tty: false
+      #- 'REACT_APP_DEBUG=${DEBUG_CLIENT}'
+      #- 'REACT_APP_APPLICATION_ID=${APPLICATION_ID}'
+      #- 'REACT_APP_CLIENT_BRAND=${CLIENT_BRAND}'
+      #- 'REACT_APP_CLIENT_NAME=${CLIENT_NAME}'
+      #- 'WDS_SOCKET_PORT=443'
+    #tty: false
     #command: 'sh -c "npm start"'
     labels:
       - 'traefik.enable=true'
       # service client-service
-      - 'traefik.http.services.client-service.loadbalancer.server.port=80'
+      - 'traefik.http.services.client-service.loadbalancer.server.port=5173'
       # Note: for development, this is terrible; but for prod? - awesome!
       # middlware https-redirect
       #- 'traefik.http.middlewares.https-redirect.redirectscheme.scheme=https'

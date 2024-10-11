@@ -1,0 +1,29 @@
+FROM node:22
+
+RUN npm config --global set fund false
+RUN npm config --global set update-notifier false
+RUN npm install --global nodemon
+
+WORKDIR /opt/client
+
+ENV SASS_PATH=node_modules
+
+# https://create-react-app.dev/docs/advanced-configuration/
+ENV BROWSER=none
+
+# Note: ARGs are to quelle build warnings - they are not used for development
+ARG REACT_APP_DEBUG
+ARG REACT_APP_APPLICATION_ID
+ARG REACT_APP_CLIENT_BRAND
+ARG REACT_APP_CLIENT_NAME
+ARG REACT_APP_SESSION_DURATION
+ARG REACT_APP_TOKEN_DURATION
+
+COPY ./client/package.json .
+COPY ./client/package-lock.json .
+RUN npm install
+
+COPY ./client/public ./public
+COPY ./client/src ./src
+
+CMD npm start
